@@ -9,7 +9,7 @@ from utils.metrics import Evaluator
 from matplotlib import image as mat_image
 from pathlib import Path
 
-BATCH_SIZE = 4
+BATCH_SIZE = 48
 
 
 class Test(object):
@@ -52,7 +52,7 @@ class Test(object):
 
                 pred = output.data.cpu().numpy()
                 pred = np.argmax(pred, axis=1)
-                for bi in range(BATCH_SIZE):
+                for bi in range(pred.shape[0]):
                     mat_image.imsave(f"./results/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg",
                                      pred[bi, :, :])
 
