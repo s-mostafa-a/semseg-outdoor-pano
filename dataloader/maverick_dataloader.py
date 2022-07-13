@@ -12,10 +12,11 @@ class Maverick(Dataset):
     def __init__(self, args):
         super().__init__()
         self._base_dir = args.dataset_path
-        self._image_dir = os.path.join(self._base_dir, 'test', 'rgb')
+        self._image_dir = os.path.join(self._base_dir)
         self.args = args
         self.images = []
-        self.images = glob.glob(self._image_dir + "/*.png")
+        self.images = glob.glob(self._image_dir + "/*.jpg")
+        print(self._image_dir)
         print('Number of images in {}: {:d}'.format('test set', len(self.images)))
 
     def __len__(self):

@@ -7,6 +7,7 @@ from models.unet import UNet
 from models.unet_equiconv import UNetEquiconv
 from utils.metrics import Evaluator
 from matplotlib import image as mat_image
+from pathlib import Path
 
 BATCH_SIZE = 4
 
@@ -36,6 +37,7 @@ class Test(object):
         self.evaluator = Evaluator(args.num_classes)
         if args.cuda:
             self.model = self.model.cuda()
+        Path(f"./results/{self.args.dataset_path.split('/')[-1]}").mkdir(parents=True, exist_ok=True)
 
     def run(self):
         self.model.eval()
@@ -51,7 +53,8 @@ class Test(object):
                 pred = output.data.cpu().numpy()
                 pred = np.argmax(pred, axis=1)
                 for bi in range(BATCH_SIZE):
-                    mat_image.imsave(f"./results/{file_name[bi]}.jpg", pred[bi, :, :])
+                    mat_image.imsave(f"./results/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg",
+                                     pred[bi, :, :])
 
 
 def main():
@@ -63,7 +66,7 @@ def main():
     parser.add_argument("--copy_weights", type=str, default=True)
     parser.add_argument("--num_classes", type=int, default=8)
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, help='batch size')
-    parser.add_argument('--dataset_path', type=str, default="./dataset/CVRG-Pano", help='path to dataset')
+    parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/subset", help='path to dataset')
     args = parser.parse_args()
     test = Test(args)
     test.run()
