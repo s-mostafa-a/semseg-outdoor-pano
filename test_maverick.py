@@ -2,12 +2,15 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 import torch
-from dataloader import maverick_loader
+from dataloader import maverick_loader, maverick_raw_loader
 from models.unet import UNet
 from models.unet_equiconv import UNetEquiconv
 from utils.metrics import Evaluator
 from matplotlib import image as mat_image
 from pathlib import Path
+from PIL import Image
+from skimage.measure import label
+from skimage.morphology import convex_hull_image
 
 BATCH_SIZE = 48
 
@@ -37,7 +40,10 @@ class Test(object):
         self.evaluator = Evaluator(args.num_classes)
         if args.cuda:
             self.model = self.model.cuda()
-        Path(f"./results/{self.args.dataset_path.split('/')[-1]}").mkdir(parents=True, exist_ok=True)
+        Path(f"./results/semantic_segmentation/{self.args.dataset_path.split('/')[-1]}").mkdir(parents=True,
+                                                                                               exist_ok=True)
+        Path(f"./results/moving_semantic_mask/{self.args.dataset_path.split('/')[-1]}").mkdir(parents=True,
+                                                                                              exist_ok=True)
 
     def run(self):
         self.model.eval()
@@ -53,8 +59,49 @@ class Test(object):
                 pred = output.data.cpu().numpy()
                 pred = np.argmax(pred, axis=1)
                 for bi in range(pred.shape[0]):
-                    mat_image.imsave(f"./results/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg",
-                                     pred[bi, :, :])
+                    res = pred[bi, :, :]
+                    semantic_path = f"./results/semantic_segmentation/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg"
+                    moving_path = f"./results/moving_semantic_mask/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg"
+                    mat_image.imsave(semantic_path, res, cmap='gray')
+                    self.save_moving_semantics_black_and_white(img=res, path=moving_path)
+
+    @staticmethod
+    def save_moving_semantics_black_and_white(img, path):
+        img = np.where(img < 6, 0, 1)
+        img = label(img)
+        labels = np.unique(img)
+        resulting = np.zeros_like(img)
+        for lbl in labels:
+            if lbl == 0:
+                continue
+            lbl_img = np.where(img == lbl, 1, 0)
+            cvx_lbl = np.where(convex_hull_image(lbl_img) > 0, 1, 0)
+            resulting += cvx_lbl
+        img = Image.fromarray(np.uint8(resulting) * 255)
+        img = img.resize((2000, 1000), Image.Resampling.BILINEAR)
+        img.save(path)
+
+    def calculate_mean_and_std(self):
+        raw_loader = maverick_raw_loader(self.args)
+
+        cnt = 0
+        fst_moment = torch.empty(3)
+        snd_moment = torch.empty(3)
+        tbar = tqdm(raw_loader, desc='\r')
+        for _, sample in enumerate(tbar):
+            images = sample['image']
+            b, c, h, w = images.shape
+            nb_pixels = b * h * w
+            sum_ = torch.sum(images, dim=[0, 2, 3])
+            sum_of_square = torch.sum(images ** 2,
+                                      dim=[0, 2, 3])
+            fst_moment = (cnt * fst_moment + sum_) / (cnt + nb_pixels)
+            snd_moment = (cnt * snd_moment + sum_of_square) / (cnt + nb_pixels)
+            cnt += nb_pixels
+
+        mean, std = fst_moment, torch.sqrt(snd_moment - fst_moment ** 2)
+        return mean, std
+    # test_2_block_a: (tensor([128.0318, 135.2806, 138.2639]), tensor([85.2109, 87.3013, 94.7959]))
 
 
 def main():
@@ -70,6 +117,7 @@ def main():
     args = parser.parse_args()
     test = Test(args)
     test.run()
+    # print(test.calculate_mean_and_std())
 
 
 if __name__ == "__main__":
