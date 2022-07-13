@@ -1,2 +1,8 @@
 *.pt
 *.pth.tar
+/results
+/dataset
+/UNet-equiconv
+/UNet-stdconv
+/.idea
+*/__pycache__/
