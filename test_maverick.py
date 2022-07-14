@@ -17,9 +17,7 @@ ORIGINAL_IMAGE_WIDTH = 2000
 ORIGINAL_IMAGE_HEIGHT = 1000
 
 
-class Test(object):
-    """UNet-stdconv and UNet-equiconv test"""
-
+class MaverickTest(object):
     def __init__(self, args):
         self.args = args
         self.test_loader = maverick_loader(args)
@@ -128,7 +126,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, help='batch size')
     parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/single", help='path to dataset')
     args = parser.parse_args()
-    test = Test(args)
+    test = MaverickTest(args)
     test.run()
     # print(test.calculate_mean_and_std())
 
