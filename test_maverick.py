@@ -13,6 +13,8 @@ from skimage.measure import label
 from skimage.morphology import convex_hull_image
 
 BATCH_SIZE = 48
+ORIGINAL_IMAGE_WIDTH = 2000
+ORIGINAL_IMAGE_HEIGHT = 1000
 
 
 class Test(object):
@@ -58,12 +60,23 @@ class Test(object):
 
                 pred = output.data.cpu().numpy()
                 pred = np.argmax(pred, axis=1)
-                for bi in range(pred.shape[0]):
-                    res = pred[bi, :, :]
-                    semantic_path = f"./results/semantic_segmentation/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg"
-                    moving_path = f"./results/moving_semantic_mask/{self.args.dataset_path.split('/')[-1]}/{file_name[bi]}.jpg"
-                    mat_image.imsave(semantic_path, res, cmap='gray')
-                    self.save_moving_semantics_black_and_white(img=res, path=moving_path)
+                self.do_saving_tasks(prediction=pred, file_names=file_name)
+
+    def do_saving_tasks(self, prediction, file_names, save_moving_semantics=True, save_semantic_segmentation=False):
+        for bi in range(prediction.shape[0]):
+            res = prediction[bi, :, :]
+            semantic_path = f"""./results/semantic_segmentation/{
+            self.args.dataset_path.split('/')[-1]}/{file_names[bi]}.jpg"""
+            moving_path = f"""./results/moving_semantic_mask/{
+            self.args.dataset_path.split('/')[-1]}/{file_names[bi]}.jpg"""
+            if save_semantic_segmentation:
+                self.save_semantic_segmentation(img=res, path=semantic_path)
+            if save_moving_semantics:
+                self.save_moving_semantics_black_and_white(img=res, path=moving_path)
+
+    @staticmethod
+    def save_semantic_segmentation(img, path):
+        mat_image.imsave(path, img, cmap='gray')
 
     @staticmethod
     def save_moving_semantics_black_and_white(img, path):
@@ -78,7 +91,7 @@ class Test(object):
             cvx_lbl = np.where(convex_hull_image(lbl_img) > 0, 1, 0)
             resulting += cvx_lbl
         img = Image.fromarray(np.uint8(resulting) * 255)
-        img = img.resize((2000, 1000), Image.Resampling.BILINEAR)
+        img = img.resize((ORIGINAL_IMAGE_WIDTH, ORIGINAL_IMAGE_HEIGHT), Image.Resampling.BILINEAR)
         img.save(path)
 
     def calculate_mean_and_std(self):
@@ -113,7 +126,7 @@ def main():
     parser.add_argument("--copy_weights", type=str, default=True)
     parser.add_argument("--num_classes", type=int, default=8)
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, help='batch size')
-    parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/subset", help='path to dataset')
+    parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/single", help='path to dataset')
     args = parser.parse_args()
     test = Test(args)
     test.run()
