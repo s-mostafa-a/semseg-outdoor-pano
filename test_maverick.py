@@ -81,15 +81,16 @@ class MaverickTest(object):
         img = np.where(img < 6, 0, 1)
         img = label(img)
         labels = np.unique(img)
-        resulting = np.zeros_like(img)
+        resulting = np.zeros(shape=img.shape, dtype=bool)
         for lbl in labels:
             if lbl == 0:
                 continue
             lbl_img = np.where(img == lbl, 1, 0)
-            cvx_lbl = np.where(convex_hull_image(lbl_img) > 0, 1, 0)
+            cvx_lbl = np.where(convex_hull_image(lbl_img) > 0, 1, 0).astype(bool)
             resulting += cvx_lbl
-        img = Image.fromarray(np.uint8(resulting) * 255)
-        img = img.resize((ORIGINAL_IMAGE_WIDTH, ORIGINAL_IMAGE_HEIGHT), Image.Resampling.BILINEAR)
+        img = Image.fromarray(resulting)
+        img = img.resize((ORIGINAL_IMAGE_WIDTH, ORIGINAL_IMAGE_HEIGHT))
+        img = img.convert("RGB")
         img.save(path)
 
     def calculate_mean_and_std(self):
