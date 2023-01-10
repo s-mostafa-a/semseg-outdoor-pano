@@ -11,6 +11,7 @@ from pathlib import Path
 from PIL import Image
 from skimage.measure import label
 from skimage.morphology import convex_hull_image
+import cv2
 
 BATCH_SIZE = 48
 ORIGINAL_IMAGE_WIDTH = 2000
@@ -58,7 +59,8 @@ class MaverickTest(object):
 
                 pred = output.data.cpu().numpy()
                 pred = np.argmax(pred, axis=1)
-                self.do_saving_tasks(prediction=pred, file_names=file_name)
+                self.do_saving_tasks(prediction=pred, file_names=file_name, save_moving_semantics=False,
+                                     save_semantic_segmentation=True)
 
     def do_saving_tasks(self, prediction, file_names, save_moving_semantics=True, save_semantic_segmentation=False):
         for bi in range(prediction.shape[0]):
@@ -74,7 +76,13 @@ class MaverickTest(object):
 
     @staticmethod
     def save_semantic_segmentation(img, path):
-        mat_image.imsave(path, img, cmap='gray')
+        img = cv2.resize(img, (ORIGINAL_IMAGE_WIDTH, ORIGINAL_IMAGE_HEIGHT), interpolation=cv2.INTER_NEAREST) * 10
+
+        to_save = np.empty(shape=(img.shape[0], img.shape[1], 3))
+        to_save[:, :, 0] = img
+        to_save[:, :, 1] = img
+        to_save[:, :, 2] = img
+        cv2.imwrite(path, img)
 
     @staticmethod
     def save_moving_semantics_black_and_white(img, path):
