@@ -82,7 +82,7 @@ class MaverickTest(object):
         to_save[:, :, 0] = img
         to_save[:, :, 1] = img
         to_save[:, :, 2] = img
-        cv2.imwrite(path, img)
+        cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 100])
 
     @staticmethod
     def save_moving_semantics_black_and_white(img, path):
@@ -133,7 +133,7 @@ def main():
     parser.add_argument("--copy_weights", type=str, default=True)
     parser.add_argument("--num_classes", type=int, default=8)
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, help='batch size')
-    parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/single", help='path to dataset')
+    parser.add_argument('--dataset_path', type=str, default="./dataset/Maverick/test_2_block_a", help='path to dataset')
     args = parser.parse_args()
     test = MaverickTest(args)
     test.run()
